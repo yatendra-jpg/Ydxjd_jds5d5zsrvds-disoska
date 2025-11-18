@@ -1,64 +1,58 @@
-// cross-tab logout via localStorage
+// Multi-tab logout
 function broadcastLogout() {
-  try { localStorage.setItem('fastmailer:logout', String(Date.now())); }
-  catch (_) {}
+  localStorage.setItem("logout", Date.now());
 }
-window.addEventListener('storage', (e) => {
-  if (e.key === 'fastmailer:logout') {
-    window.location.replace('/');
-  }
+window.addEventListener("storage", e => {
+  if (e.key === "logout") location.href = "/";
 });
 
-// logout on double-click
-const logoutBtn = document.getElementById('logoutBtn');
-if (logoutBtn) {
-  logoutBtn.addEventListener('dblclick', () => {
-    fetch('/logout', { method: 'POST' })
-      .then(() => { broadcastLogout(); window.location.replace('/'); })
-      .catch(() => { broadcastLogout(); window.location.replace('/'); });
-  });
-}
+// Double click logout
+logoutBtn?.addEventListener("dblclick", () => {
+  fetch("/logout", { method:"POST" })
+    .then(() => {
+      broadcastLogout();
+      location.href = "/";
+    });
+});
 
-document.getElementById('sendBtn')?.addEventListener('click', () => {
-  const senderName = document.getElementById('senderName').value;
-  const email = document.getElementById('email').value.trim();
-  const password = document.getElementById('pass').value.trim();
-  const subject = document.getElementById('subject').value;
-  const message = document.getElementById('message').value;
-  const recipients = document.getElementById('recipients').value.trim();
-  const status = document.getElementById('statusMessage');
+// SEND MAIL
+sendBtn?.addEventListener("click", () => {
 
-  if (!email || !password || !recipients) {
-    status.innerText = '✖ Email, password and recipients required';
-    alert('❌ Email, password and recipients required');
+  const body = {
+    senderName: senderName.value,
+    email: email.value.trim(),
+    password: pass.value.trim(),
+    subject: subject.value,
+    message: message.value,
+    recipients: recipients.value.trim()
+  };
+
+  if (!body.email || !body.password || !body.recipients) {
+    statusMessage.innerText = "❌ Email, password & recipients required";
+    alert("❌ Missing details");
     return;
   }
 
-  const btn = document.getElementById('sendBtn');
-  btn.disabled = true;
-  btn.innerText = '⏳ Sending...';
+  sendBtn.disabled = true;
+  sendBtn.innerHTML = "⏳ Sending...";
 
-  fetch('/send', {
-    method:'POST',
-    headers:{ 'Content-Type':'application/json' },
-    body: JSON.stringify({ senderName, email, password, subject, message, recipients })
+  fetch("/send", {
+    method: "POST",
+    headers: { "Content-Type":"application/json" },
+    body: JSON.stringify(body)
   })
-  .then(r=>r.json())
-  .then(data=>{
-    if (data.success) {
-      status.innerText = '✅ ' + (data.message || 'Mail sent');
-      alert('✅ Mail sent successfully!');
+  .then(r => r.json())
+  .then(d => {
+    statusMessage.innerText = (d.success ? "✅ " : "❌ ") + d.message;
+
+    if (d.success) {
+      setTimeout(() => alert("✅ Mail Sent Successfully"), 300);
     } else {
-      status.innerText = '✖ ' + (data.message || 'Failed to send');
-      alert('❌ ' + (data.message || 'Failed to send'));
+      alert("❌ " + d.message);
     }
   })
-  .catch(err=>{
-    status.innerText = '✖ ' + (err.message || 'Network error');
-    alert('❌ ' + (err.message || 'Network error'));
-  })
-  .finally(()=>{
-    btn.disabled = false;
-    btn.innerText = 'Send All';
+  .finally(() => {
+    sendBtn.disabled = false;
+    sendBtn.innerHTML = "Send All";
   });
 });

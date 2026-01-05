@@ -1,64 +1,41 @@
-function showPopup(msg, type){
-    let p = document.getElementById("popup");
-    p.innerHTML = msg;
-    p.style.background = type==="error" ? "#ff3b3b" : "#26c847";
-    p.style.top = "20px";
-    setTimeout(()=> p.style.top = "-80px", 3000);
-}
+let sending = false;
 
-// UI Counter
-let totalSent = 0;
+const sendBtn = document.getElementById("sendBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+const limitText = document.getElementById("limitText");
 
-function updateSent(){
-    document.getElementById("sentCount").innerText = totalSent;
-}
+sendBtn.addEventListener("click", () => {
+  if (!sending) sendMail();
+});
 
-async function sendAll(){
-    sendBtn.disabled = true;
-    sendBtn.innerHTML = "Sending...";
+logoutBtn.addEventListener("dblclick", () => {
+  if (!sending) location.href = "/login.html";
+});
 
-    let rec = recipients.value
-        .split(/[\n,]+/)
-        .map(x => x.trim())
-        .filter(x => x);
+async function sendMail() {
+  sending = true;
+  sendBtn.disabled = true;
+  sendBtn.innerText = "Sending…";
 
-    let payload = {
-        sender: sender.value,
-        email: email.value,
-        appPassword: appPass.value,
-        subject: subject.value,
-        body: body.value,
-        recipients: rec
-    };
+  const res = await fetch("/send", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      senderName: senderName.value,
+      gmail: gmail.value,
+      apppass: apppass.value,
+      subject: subject.value,
+      message: message.value,
+      to: to.value
+    })
+  });
 
-    let res = await fetch("/send-mails", {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify(payload)
-    });
+  const data = await res.json();
+  sending = false;
+  sendBtn.disabled = false;
+  sendBtn.innerText = "Send All";
 
-    let data = await res.json();
-
-    if(data.success){
-        // 🔥 Increase UI counter only (SAFE)
-        totalSent += rec.length;
-        updateSent();
-        showPopup("Mail Sent ✅","success");
-    }
-    else if(data.message === "INVALID_PASS"){
-        showPopup("Wrong App Password ☒","error");
-    }
-    else if(data.message === "LIMIT_FULL"){
-        showPopup("❌ Limit mail send Full","error");
-    }
-    else{
-        showPopup("Error ❌","error");
-    }
-
-    sendBtn.disabled = false;
-    sendBtn.innerHTML = "Send All";
-}
-
-function logout(){
-    window.location.href = "login.html";
+  limitText.innerText = `${data.count}/28`;
+  if (!data.success) return alert(data.msg);
+  alert(`Mail Send Successful ✅\nSent: ${data.sent}`);
 }

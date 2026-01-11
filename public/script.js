@@ -31,6 +31,7 @@ async function sendMail() {
   });
 
   const data = await res.json();
+
   sending = false;
   sendBtn.disabled = false;
   sendBtn.innerText = "Send All";
